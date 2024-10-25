@@ -6,7 +6,7 @@ api = Api(app)
 
 class Pokemon(Resource):
     def get(self):
-        return {"data": "Soy un Pokemon!"}
+        return {"data": "Soy un Entrenador Pokemon!"}
 
 api.add_resource(Pokemon, "/helloworld")
 
