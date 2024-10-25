@@ -11,10 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Print Debug Info
+    - name: Check Network Connectivity
       run: |
-        echo "SSH Host: ${{ secrets.SSH_HOST }}"
-        echo "SSH User: ${{ secrets.SSH_USER }}"
+        ping -c 4 ip-172-31-34-132 || echo "Ping failed"
     - name: install ssh keys
       # check this thread to understand why its needed:
       # https://stackoverflow.com/a/70447517
