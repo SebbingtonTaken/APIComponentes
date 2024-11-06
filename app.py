@@ -1,5 +1,5 @@
 import boto3
-from flask import Flask, Response
+from flask import Flask, Response, jsonify
 from decimal import Decimal
 from flask_restful import Api, Resource, reqparse, abort
 import json
@@ -26,7 +26,7 @@ pokemon_put_args.add_argument("baseSpeed", type=int, help="Base Speed of the Pok
 
 pokemon_get_args = reqparse.RequestParser()
 pokemon_get_args.add_argument("userId", type=str, help="Please include the User ID", required=True)
-pokemon_get_args.add_argument("pokemonId", type=str, help="Please include the Pokemon ID", required=True)
+pokemon_get_args.add_argument("pokemonId", type=str, help="Please include the Pokemon ID")
 
 
 #function to make Dynamo db datatype compatible with Python        
@@ -41,26 +41,39 @@ def decimal_to_float(obj):
         return obj
 
 class Pokemon(Resource):
+
     def get(self):
         args = pokemon_get_args.parse_args()
-        try:
-            response = pokedex_table.get_item(
-                Key={
-                    'UserId': args["userId"],
-                    'PokemonId': args["pokemonId"],
-                }
-            )
-            item = response.get('Item')
-            
-            if not item:
-                return {"message": "Pokemon not found for this User ID"}, 404
+        if args["pokemonId"]:
+            try:
+                response = pokedex_table.get_item(
+                    Key={
+                        'UserId': args["userId"],
+                        'PokemonId': args["pokemonId"],
+                    }
+                )
+                item = response.get('Item')
+                
+                if not item:
+                    return {"message": "Pokemon not found for this User ID"}, 404
 
-            # Convert Decimals to float for JSON serialization
-            item = decimal_to_float(item)
-            return item, 200
-        except Exception as e:
-            print("A server error occurred:", e)
-            return {"error": str(e)}, 500
+                # Convert Decimals to float for JSON serialization
+                item = decimal_to_float(item)
+                return {'data': item}, 200
+            except Exception as e:
+                print("A server error occurred:", e)
+                return {"error": str(e)}, 500
+        else:
+            try:
+                response = pokedex_table.query(
+                    KeyConditionExpression=boto3.dynamodb.conditions.Key('UserId').eq(args["userId"])
+                )
+                items = response.get('Items', [])
+                items = [decimal_to_float(item) for item in items]
+                return {'data': items}, 200
+            except Exception as e:
+                return {'error': str(e)}, 500
+
     def put(self):
         try:
             args = pokemon_put_args.parse_args()
@@ -105,10 +118,9 @@ class Pokemon(Resource):
             print("A server error occurred:", e)
             return {"error": str(e)}, 500
        
-    def delete(self, pokemon_id):
-        abort_if_pokemon_doesnt_exist(pokemon_id)
-        del pokemons[pokemon_id]
-        return '', 204
+    # def delete(self, pokemon_id):
+    #     del pokemons[pokemon_id]
+    #     return '', 204
 
 api.add_resource(Pokemon, "/pokedex")
 
