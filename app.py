@@ -1,9 +1,15 @@
 import boto3
+import openai
 from flask import Flask, Response, jsonify
 from decimal import Decimal
 from flask_restful import Api, Resource, reqparse, abort
+import google.generativeai as genai
 import json
 
+API_KEY = open("C:\\Users\\basti\\Desktop\\Cenfotec\\Disenho de Componentes\\Proyecto\\APIComponentes\\API-key.txt", "r").read()
+
+
+genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 api = Api(app)
@@ -15,13 +21,14 @@ pokedex_table = dynamodb.Table('Pokedex')
 pokemon_put_args = reqparse.RequestParser()
 pokemon_put_args.add_argument("userId", type=str, help="Please include the User ID", required=True)
 pokemon_put_args.add_argument("pokemonId", type=str, help="Please include the Pokemon ID", required=True)
-pokemon_put_args.add_argument("pokedexEntry", type=str, help="Pokedex entry description", required=True)
+pokemon_put_args.add_argument("pokedexEntry", type=str, help="Pokedex entry description")
 pokemon_put_args.add_argument("baseHp", type=int, help="Base HP of the Pokemon", required=True)
 pokemon_put_args.add_argument("baseAtk", type=int, help="Base Attack of the Pokemon", required=True)
 pokemon_put_args.add_argument("baseSpAtk", type=int, help="Base Special Attack of the Pokemon", required=True)
 pokemon_put_args.add_argument("baseDef", type=int, help="Base Defense of the Pokemon", required=True)
 pokemon_put_args.add_argument("baseSpDef", type=int, help="Base Special Defense of the Pokemon", required=True)
 pokemon_put_args.add_argument("baseSpeed", type=int, help="Base Speed of the Pokemon", required=True)
+pokemon_put_args.add_argument("type", type=str, help="Type of the Pokemon", required=True)
 
 
 pokemon_get_args = reqparse.RequestParser()
@@ -83,6 +90,7 @@ class Pokemon(Resource):
                     'UserId': args["userId"],
                     'PokemonId': args["pokemonId"],
                     'PokedexEntry': args["pokedexEntry"],
+                    'Type': args["type"],
                     'BaseHP': args["baseHp"],
                     'BaseAtk': args["baseAtk"],
                     'BaseSpAtk': args["baseSpAtk"],
@@ -98,19 +106,26 @@ class Pokemon(Resource):
     def post(self):
         try:
             args = pokemon_put_args.parse_args()
-            print("Parsed Arguments:", args)  # Debug print
-            pokedex_table.put_item(
-                Item={
+            pokemon_json = {
                     'UserId': args["userId"],
                     'PokemonId': args["pokemonId"],
-                    'PokedexEntry': args["pokedexEntry"],
+                    'PokedexEntry': "",
+                    'Type': args["type"],
                     'BaseHP': args["baseHp"],
                     'BaseAtk': args["baseAtk"],
                     'BaseSpAtk': args["baseSpAtk"],
                     'BaseDef': args["baseDef"],
                     'BaseSpDef': args["baseSpDef"],
                     'BaseSpeed': args["baseSpeed"],
-                },
+                }
+            json_string = json.dumps(pokemon_json)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            genai_response = model.generate_content("Interpret the following json as information about a pokemon where pokemonId is the name of the pokemon the name and the rest are its stats and type. Please give me a short pokedex entry for it, while being creative, witty, and funny. The answer must be shorter than 3 sentences. " + json_string)
+            pokemon_json["PokedexEntry"]=genai_response.text
+            print(genai_response.text)
+            print("Parsed Arguments:", args)  # Debug print
+            pokedex_table.put_item(
+                Item =pokemon_json,
                 ConditionExpression="attribute_not_exists(UserId) AND attribute_not_exists(PokemonId)" #checks if pokemon already exists for that user
             )
             return {"message": "Pokemon added successfully"}, 201
