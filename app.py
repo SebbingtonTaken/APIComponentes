@@ -4,11 +4,10 @@ from decimal import Decimal
 from flask_restful import Api, Resource, reqparse, abort
 import google.generativeai as genai
 import json
+import os
 
-API_KEY = open("C:\\Users\\basti\\Desktop\\Cenfotec\\Disenho de Componentes\\Proyecto\\APIComponentes\\API-key.txt", "r").read()
+genai.configure(api_key=os.environ["API_KEY"])
 
-
-genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 api = Api(app)
