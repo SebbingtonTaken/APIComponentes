@@ -1,5 +1,4 @@
 import boto3
-import openai
 from flask import Flask, Response, jsonify
 from decimal import Decimal
 from flask_restful import Api, Resource, reqparse, abort
