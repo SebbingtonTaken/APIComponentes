@@ -33,6 +33,10 @@ pokemon_get_args = reqparse.RequestParser()
 pokemon_get_args.add_argument("userId", type=str, help="Please include the User ID", required=True)
 pokemon_get_args.add_argument("pokemonId", type=str, help="Please include the Pokemon ID")
 
+pokemon_del_args = reqparse.RequestParser()
+pokemon_del_args.add_argument("userId", type=str, help="Please include the User ID", required=True)
+pokemon_del_args.add_argument("pokemonId", type=str, help="Please include the Pokemon ID", required=True)
+
 
 #function to make Dynamo db datatype compatible with Python        
 def decimal_to_float(obj):
@@ -57,6 +61,8 @@ class Pokemon(Resource):
                         'PokemonId': args["pokemonId"],
                     }
                 )
+                if 'Item' not in response:
+                    return {"message": "Pokemon not found"}, 404 
                 item = response.get('Item')
                 
                 if not item:
@@ -131,9 +137,32 @@ class Pokemon(Resource):
             print("A server error occurred:", e)
             return {"error": str(e)}, 500
        
-    # def delete(self, pokemon_id):
-    #     del pokemons[pokemon_id]
-    #     return '', 204
+    def delete(self):
+        try:
+            args = pokemon_del_args.parse_args()
+            response = pokedex_table.get_item(
+            Key={
+                'UserId': args["userId"],
+                'PokemonId': args["pokemonId"]
+             }
+            )
+
+            if 'Item' not in response:
+                return {"message": "Pokemon not found"}, 404 
+
+
+
+            pokedex_table.delete_item(
+            Key={
+                    'UserId': args["userId"],
+                    'PokemonId': args["pokemonId"]
+                }
+            )
+        except Exception as e:
+            print("A server error occurred:", e)
+            return {"error": str(e)}, 500
+
+        return {"message": "Pokemon deleted successfully"}, 200
 
 api.add_resource(Pokemon, "/pokedex")
 
