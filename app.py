@@ -1,5 +1,7 @@
 import boto3
 from flask import Flask, Response, jsonify
+from flask_cors import CORS
+
 from decimal import Decimal
 from flask_restful import Api, Resource, reqparse, abort
 import google.generativeai as genai
@@ -11,6 +13,7 @@ genai.configure(api_key=os.environ["API_KEY"])
 
 app = Flask(__name__)
 api = Api(app)
+CORS(app)
 dynamodb = boto3.resource('dynamodb')
 
 
