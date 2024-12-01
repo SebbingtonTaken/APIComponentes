@@ -135,7 +135,7 @@ class Pokemon(Resource):
                 Item =pokemon_json,
                 ConditionExpression="attribute_not_exists(UserId) AND attribute_not_exists(PokemonId)" #checks if pokemon already exists for that user
             )
-            return {"message": "Pokemon added successfully"}, 201
+            return {"data": pokemon_json}, 201
         except Exception as e:
             print("A server error occurred:", e)
             return {"error": str(e)}, 500
